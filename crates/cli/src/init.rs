@@ -1228,16 +1228,12 @@ fn update_python_setup_py(path: &Path, language_name: &str, opts: &GenerateOpts)
 
 fn update_swift_package(path: &Path) -> Result<()> {
     let contents = fs::read_to_string(path)?;
-    let replaced_contents = contents
+    let mut replaced_contents = contents
         .replace(
             "https://github.com/ChimeHQ/SwiftTreeSitter",
             "https://github.com/tree-sitter/swift-tree-sitter",
         )
         .replace("// swift-tools-version:5.3", "// swift-tools-version:5.6")
-        .replace(
-            "\nvar sources =",
-            "\nlet dir = Context.packageDirectory\nvar sources =",
-        )
         .replace(
             "atPath: \"src/scanner.c\"",
             "atPath: \"\\(dir)/src/scanner.c\"",
@@ -1249,6 +1245,15 @@ fn update_swift_package(path: &Path) -> Result<()> {
             "    \"SwiftTreeSitter\"",
             "    .product(name: \"SwiftTreeSitter\", package: \"swift-tree-sitter\")",
         );
+    let dir_line = "let dir = Context.packageDirectory\n";
+    let doubled_dir_line = dir_line.repeat(2);
+    while replaced_contents.contains(&doubled_dir_line) {
+        replaced_contents = replaced_contents.replace(&doubled_dir_line, dir_line);
+    }
+    if !replaced_contents.contains(&format!("\n{dir_line}")) {
+        replaced_contents =
+            replaced_contents.replace("\nvar sources =", &format!("\n{dir_line}var sources ="));
+    }
     if !replaced_contents.eq(&contents) {
         info!("Updating Package.swift");
         write_file(path, replaced_contents)?;
