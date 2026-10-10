@@ -80,7 +80,7 @@ shared: libtree-sitter.$(SOEXT)
 static: libtree-sitter.a
 
 clean:
-	$(RM) $(OBJ) tree-sitter.pc libtree-sitter.a libtree-sitter.$(SOEXT) libtree-stitter.dll.a
+	$(RM) $(OBJ) tree-sitter.pc libtree-sitter.a libtree-sitter.$(SOEXT) libtree-sitter.dll.a
 
 install: all
 	install -d '$(DESTDIR)$(INCLUDEDIR)'/tree_sitter '$(DESTDIR)$(PCLIBDIR)' '$(DESTDIR)$(LIBDIR)'
@@ -99,11 +99,16 @@ endif
 
 uninstall:
 	$(RM) '$(DESTDIR)$(LIBDIR)'/libtree-sitter.a \
-		'$(DESTDIR)$(LIBDIR)'/libtree-sitter.$(SOEXTVER) \
-		'$(DESTDIR)$(LIBDIR)'/libtree-sitter.$(SOEXTVER_MAJOR) \
-		'$(DESTDIR)$(LIBDIR)'/libtree-sitter.$(SOEXT) \
 		'$(DESTDIR)$(INCLUDEDIR)'/tree_sitter/api.h \
 		'$(DESTDIR)$(PCLIBDIR)'/tree-sitter.pc
+ifneq ($(findstring mingw32,$(MACHINE)),)
+	$(RM) '$(DESTDIR)$(BINDIR)'/libtree-sitter.dll \
+		'$(DESTDIR)$(LIBDIR)'/libtree-sitter.dll.a
+else
+	$(RM) '$(DESTDIR)$(LIBDIR)'/libtree-sitter.$(SOEXTVER) \
+		'$(DESTDIR)$(LIBDIR)'/libtree-sitter.$(SOEXTVER_MAJOR) \
+		'$(DESTDIR)$(LIBDIR)'/libtree-sitter.$(SOEXT)
+endif
 	rmdir '$(DESTDIR)$(INCLUDEDIR)'/tree_sitter
 
 .PHONY: all shared static install uninstall clean
