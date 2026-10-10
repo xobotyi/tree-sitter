@@ -1065,6 +1065,42 @@ fn update_c_makefile(path: &Path, language_name: &str, opts: &GenerateOpts) -> R
                 &format!("{version_line}\nDESCRIPTION := {description}"),
             );
         }
+        let mingw_install =
+            "ifneq ($(findstring mingw32,$(MACHINE)),)\n\tinstall -d '$(DESTDIR)$(BINDIR)'\n";
+        let stray_install = format!(
+            "\tinstall -m755 lib$(LANGUAGE_NAME).$(SOEXT) '$(DESTDIR)$(LIBDIR)'/lib$(LANGUAGE_NAME).$(SOEXTVER)\n{mingw_install}"
+        );
+        if contents.contains(&stray_install) {
+            info!("Fixing MinGW install rule in Makefile");
+            contents = contents.replace(&stray_install, mingw_install);
+        }
+        let unix_uninstall = concat!(
+            "\t$(RM) '$(DESTDIR)$(LIBDIR)'/lib$(LANGUAGE_NAME).a \\\n",
+            "\t\t'$(DESTDIR)$(LIBDIR)'/lib$(LANGUAGE_NAME).$(SOEXTVER) \\\n",
+            "\t\t'$(DESTDIR)$(LIBDIR)'/lib$(LANGUAGE_NAME).$(SOEXTVER_MAJOR) \\\n",
+            "\t\t'$(DESTDIR)$(LIBDIR)'/lib$(LANGUAGE_NAME).$(SOEXT) \\\n",
+            "\t\t'$(DESTDIR)$(INCLUDEDIR)'/tree_sitter/$(LANGUAGE_NAME).h \\\n",
+            "\t\t'$(DESTDIR)$(PCLIBDIR)'/$(LANGUAGE_NAME).pc\n",
+        );
+        if contents.contains(unix_uninstall) {
+            info!("Adding MinGW uninstall rule to Makefile");
+            contents = contents.replace(
+                unix_uninstall,
+                concat!(
+                    "\t$(RM) '$(DESTDIR)$(LIBDIR)'/lib$(LANGUAGE_NAME).a \\\n",
+                    "\t\t'$(DESTDIR)$(INCLUDEDIR)'/tree_sitter/$(LANGUAGE_NAME).h \\\n",
+                    "\t\t'$(DESTDIR)$(PCLIBDIR)'/$(LANGUAGE_NAME).pc\n",
+                    "ifneq ($(findstring mingw32,$(MACHINE)),)\n",
+                    "\t$(RM) '$(DESTDIR)$(BINDIR)'/lib$(LANGUAGE_NAME).dll \\\n",
+                    "\t\t'$(DESTDIR)$(LIBDIR)'/lib$(LANGUAGE_NAME).dll.a\n",
+                    "else\n",
+                    "\t$(RM) '$(DESTDIR)$(LIBDIR)'/lib$(LANGUAGE_NAME).$(SOEXTVER) \\\n",
+                    "\t\t'$(DESTDIR)$(LIBDIR)'/lib$(LANGUAGE_NAME).$(SOEXTVER_MAJOR) \\\n",
+                    "\t\t'$(DESTDIR)$(LIBDIR)'/lib$(LANGUAGE_NAME).$(SOEXT)\n",
+                    "endif\n",
+                ),
+            );
+        }
         write_file(path, contents)?;
     }
     Ok(())
